@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>가천대 길잡이 - Google Maps</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Black+Han+Sans&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+    :root { --bg:#0d1117; --surface:#161b22; --surface2:#21262d; --border:rgba(255,255,255,.08); --accent:#58a6ff; --accent2:#3fb950; --warn:#f78166; --text:#e6edf3; --muted:#8b949e; --card-radius:12px; }
+    body { background:var(--bg); color:var(--text); font-family:'Nanum Gothic',sans-serif; min-height:100vh; }
+    header { padding:2rem 1.5rem 1.5rem; border-bottom:1px solid var(--border); background:linear-gradient(180deg,rgba(88,166,255,.06),transparent); text-align:center; }
+    .logo-badge { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.12em; color:var(--accent); background:rgba(88,166,255,.1); border:1px solid rgba(88,166,255,.25); border-radius:20px; padding:4px 14px; margin-bottom:1rem; text-transform:uppercase; }
+    h1 { font-family:'Black Han Sans',sans-serif; font-size:clamp(1.6rem,5vw,2.4rem); line-height:1.2; margin-bottom:.5rem; }
+    h1 span { color:var(--accent); }
+    .sub { font-size:13px; color:var(--muted); }
+    main { max-width:900px; margin:0 auto; padding:1.5rem 1rem 3rem; }
+    .selector-section, .result-card, .legend, .api-guide { background:var(--surface); border:1px solid var(--border); border-radius:var(--card-radius); padding:1.5rem; margin-bottom:1.25rem; }
+    .selector-label, .legend-title, .guide-title { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:.75rem; }
+    .sel-row { display:grid; grid-template-columns:1fr 44px 1fr; gap:10px; align-items:center; }
+    .sel-wrap { position:relative; }
+    .sel-wrap::after { content:'▾'; position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:12px; pointer-events:none; }
+    select { width:100%; appearance:none; background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:.65rem 2rem .65rem .9rem; font-family:'Nanum Gothic',sans-serif; font-size:14px; font-weight:700; cursor:pointer; outline:none; }
+    select:focus { border-color:var(--accent); }
+    .swap-btn { width:44px; height:44px; background:var(--surface2); border:1px solid var(--border); border-radius:50%; color:var(--muted); font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:.2s; margin:0 auto; }
+    .swap-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .route-header { font-size:13px; color:var(--muted); margin-bottom:1rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .route-header strong { color:var(--text); font-size:15px; }
+    .badge { font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:20px; }
+    .badge-walk { background:rgba(63,185,80,.15); color:var(--accent2); border:1px solid rgba(63,185,80,.3); }
+    .badge-hill { background:rgba(247,129,102,.15); color:var(--warn); border:1px solid rgba(247,129,102,.3); display:none; }
+    .metrics { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:1rem; }
+    .metric { background:var(--surface2); border-radius:8px; padding:1rem 1.1rem; }
+    .metric-label { font-size:11px; color:var(--muted); margin-bottom:4px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .metric-value { font-family:'Black Han Sans',sans-serif; font-size:2rem; color:var(--accent); line-height:1; }
+    .metric-unit { font-family:'Nanum Gothic',sans-serif; font-size:14px; color:var(--muted); font-weight:400; }
+    .tip-box { font-size:12px; color:var(--muted); background:rgba(88,166,255,.05); border:1px solid rgba(88,166,255,.15); border-radius:8px; padding:.75rem 1rem; line-height:1.7; }
+    .tip-box::before { content:'💡 '; }
+    .map-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--card-radius); overflow:hidden; margin-bottom:1.25rem; }
+    .map-title { padding:.75rem 1rem; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:6px; }
+    .map-title span { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent2); }
+    #map { width:100%; height:440px; background:var(--surface2); }
+    .same-warn, .map-message { font-size:13px; color:var(--muted); text-align:center; padding:1rem; display:none; }
+    .legend-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:8px; }
+    .legend-item { display:flex; align-items:flex-start; gap:8px; font-size:12px; }
+    .legend-dot { width:10px; height:10px; border-radius:50%; margin-top:2px; flex-shrink:0; }
+    .legend-name { color:var(--text); font-weight:700; }
+    .legend-desc { color:var(--muted); font-size:11px; }
+    .api-guide { border-color:rgba(247,129,102,.35); display:none; }
+    .api-guide code { color:#ffd8cc; background:var(--surface2); padding:2px 5px; border-radius:4px; }
+    .api-guide p { font-size:12px; color:var(--muted); line-height:1.7; margin-top:.5rem; }
+    footer { text-align:center; padding:1.5rem; font-size:11px; color:var(--muted); border-top:1px solid var(--border); }
+    @media (max-width:480px){ .sel-row{grid-template-columns:1fr}.swap-btn{transform:rotate(90deg)}.metrics{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-badge">가천대학교 · 글로벌캠퍼스</div>
+    <h1>가천대 <span>길잡이</span></h1>
+    <p class="sub">Google Maps 도보 길찾기 기반으로 건물 간 실제 경로를 안내합니다</p>
+  </header>
+  <main>
+    <div class="selector-section">
+      <div class="selector-label">출발지 · 도착지 선택</div>
+      <div class="sel-row">
+        <div class="sel-wrap"><select id="from"></select></div>
+        <button class="swap-btn" id="swapBtn" title="출발·도착 바꾸기">⇄</button>
+        <div class="sel-wrap"><select id="to"></select></div>
+      </div>
+    </div>
+    <div class="same-warn" id="sameWarn">출발지와 도착지가 같습니다.</div>
+    <div class="api-guide" id="apiGuide">
+      <div class="guide-title">Google Maps API 키 설정 필요</div>
+      <p>파일 맨 아래의 <code>YOUR_GOOGLE_MAPS_API_KEY</code> 부분을 본인의 Google Maps API 키로 바꿔주세요.</p>
+      <p>Google Cloud Console에서 <b>Maps JavaScript API</b>와 <b>Directions API</b>를 활성화해야 경로가 표시됩니다.</p>
+    </div>
+    <div class="result-card" id="resultCard">
+      <div class="route-header">
+        <strong id="routeText"></strong>
+        <span class="badge badge-walk">Google 도보 경로</span>
+        <span class="badge badge-hill" id="hillBadge">⛰ 언덕 구간</span>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">소요 시간</div><div class="metric-value"><span id="timeVal">—</span><span class="metric-unit"> 분</span></div></div>
+        <div class="metric"><div class="metric-label">거리</div><div class="metric-value"><span id="distVal">—</span><span class="metric-unit"> m</span></div></div>
+      </div>
+      <div class="tip-box" id="tipText">건물을 선택하면 실제 도보 경로가 지도 위에 표시됩니다.</div>
+    </div>
+    <div class="map-section">
+      <div class="map-title"><span></span> 실제 도보 경로 (Google Maps)</div>
+      <div id="map"></div>
+      <div class="map-message" id="mapMessage"></div>
+    </div>
+    <div class="legend"><div class="legend-title">건물 목록</div><div class="legend-grid" id="legendGrid"></div></div>
+  </main>
+  <footer>경로 및 시간은 Google Maps 도보 길찾기 기준입니다. 실제 이동 환경과 다를 수 있습니다.<br>가천대학교 글로벌캠퍼스 · 경기도 성남시 수정구 성남대로 1342</footer>
+
+  <script>
+    const BUILDINGS = [
+      { id:'vision', name:'비전타워', lat:37.44888, lng:127.12660, color:'#58a6ff', desc:'가천대역 직결 · 학생식당 · 법과대' },
+      { id:'global', name:'글로벌센터', lat:37.44938, lng:127.12712, color:'#a371f7', desc:'영어강의 · G-LAC' },
+      { id:'semi', name:'반도체대학', lat:37.44895, lng:127.12700, color:'#f47067', desc:'화공·반도체 강의' },
+      { id:'bio_nano_u', name:'바이오나노대학', lat:37.44975, lng:127.12810, color:'#56d364', desc:'바이오나노 강의동' },
+      { id:'bio_res', name:'바이오나노연구원', lat:37.44870, lng:127.12790, color:'#79c0ff', desc:'연구 시설' },
+      { id:'eng2', name:'공과대학2', lat:37.44845, lng:127.12835, color:'#8b949e', desc:'공학 강의동' },
+      { id:'gachon', name:'가천관', lat:37.44970, lng:127.12920, color:'#3fb950', desc:'대학본부 · 지하2~지상12층' },
+      { id:'lifelong', name:'평생교육원', lat:37.45060, lng:127.12920, color:'#8b949e', desc:'평생교육 · 행정지원실' },
+      { id:'edu_grad', name:'교육대학원', lat:37.45020, lng:127.13050, color:'#d2a8ff', desc:'대학원 강의동' },
+      { id:'lib', name:'중앙도서관', lat:37.45080, lng:127.13250, color:'#f78166', desc:'헐떡고개 위 · 10~15분 소요' },
+      { id:'student', name:'학생회관', lat:37.45130, lng:127.13430, color:'#e3b341', desc:'학생 편의시설' },
+      { id:'ai', name:'AI관', lat:37.45250, lng:127.13430, color:'#ffa657', desc:'2022년 신축 · IT·AI 강의' },
+      { id:'dorm1', name:'제1학생생활관', lat:37.45380, lng:127.13560, color:'#79c0ff', desc:'기숙사 · 남위례역 도보 가능' },
+    ];
+    const HILL_UPPER = new Set(['lib','student','ai','dorm1']);
+    const TIPS = {
+      'global_vision':'비전타워와 글로벌센터는 바로 옆에 붙어있어요. 가천대역 지하통로로 연결됩니다.',
+      'semi_vision':'비전타워와 반도체대학은 성남대로변에 나란히 있어 이동이 편합니다.',
+      'gachon_vision':'가천관~비전타워는 자주 이동하는 구간입니다.',
+      'gachon_lib':'가천관에서 중앙도서관은 헐떡고개를 올라야 해요. 에코버스 이용도 고려해보세요.',
+      'ai_gachon':'AI관에서 가천관은 헐떡고개를 내려오는 구간이에요.',
+      'ai_vision':'AI관에서 비전타워는 캠퍼스를 길게 가로지르는 구간입니다.',
+      'ai_dorm1':'AI관과 제1학생생활관은 상단 구역에 가까이 위치해 있어요.',
+      'lib_student':'중앙도서관과 학생회관은 헐떡고개 위에 나란히 있습니다.',
+      'dorm1_vision':'기숙사에서 비전타워까지는 캠퍼스에서 긴 구간 중 하나예요.'
+    };
+    const fromSel = document.getElementById('from');
+    const toSel = document.getElementById('to');
+    BUILDINGS.forEach(b => [fromSel, toSel].forEach(sel => {
+      const opt = document.createElement('option'); opt.value = b.id; opt.textContent = b.name; sel.appendChild(opt);
+    }));
+    toSel.selectedIndex = 6;
+    const grid = document.getElementById('legendGrid');
+    BUILDINGS.forEach(b => {
+      const item = document.createElement('div'); item.className = 'legend-item';
+      item.innerHTML = `<span class="legend-dot" style="background:${b.color}"></span><div><div class="legend-name">${b.name}</div><div class="legend-desc">${b.desc}</div></div>`;
+      grid.appendChild(item);
+    });
+    let map, directionsService, directionsRenderer;
+    function getKey(a,b){ return [a,b].sort().join('_'); }
+    function isHill(a,b){ return HILL_UPPER.has(a) !== HILL_UPPER.has(b); }
+    function findBuilding(id){ return BUILDINGS.find(b => b.id === id); }
+    function initMap(){
+      document.getElementById('apiGuide').style.display='none';
+      map = new google.maps.Map(document.getElementById('map'), {
+        center:{lat:37.45050,lng:127.13050}, zoom:16, mapTypeControl:false, streetViewControl:false, fullscreenControl:true
+      });
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        map,
+        suppressMarkers:false, // Google Directions가 계산한 실제 출발/도착 지점에 기본 마커 표시
+        polylineOptions:{ strokeWeight:5, strokeOpacity:.9 }
+      });
+      update();
+    }
+    window.initMap = initMap;
+    window.gm_authFailure = function(){
+      document.getElementById('apiGuide').style.display='block';
+      document.getElementById('mapMessage').style.display='block';
+      document.getElementById('mapMessage').textContent='Google Maps API 키 또는 도메인 제한 설정을 확인하세요.';
+    };
+    function updateMetrics(distanceText, durationText, fromB, toB){
+      document.getElementById('distVal').textContent = distanceText.replace(/[^0-9.]/g,'') || distanceText;
+      document.querySelector('#distVal + .metric-unit').textContent = distanceText.includes('km') ? ' km' : ' m';
+      const min = durationText.match(/\d+/)?.[0] || durationText;
+      document.getElementById('timeVal').textContent = min;
+      document.getElementById('hillBadge').style.display = isHill(fromB.id,toB.id) ? 'inline-block' : 'none';
+      const key = getKey(fromB.id,toB.id);
+      document.getElementById('tipText').textContent = TIPS[key] || (isHill(fromB.id,toB.id) ? '언덕 구간이 포함될 수 있어요. 여유 있게 이동하세요!' : 'Google Maps가 계산한 도보 경로입니다.');
+    }
+    function approxMetrics(fromB,toB){
+      const R=6371000, dLat=(toB.lat-fromB.lat)*Math.PI/180, dLng=(toB.lng-fromB.lng)*Math.PI/180;
+      const a=Math.sin(dLat/2)**2 + Math.cos(fromB.lat*Math.PI/180)*Math.cos(toB.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+      const m=Math.round(2*R*Math.asin(Math.sqrt(a))*1.35/10)*10;
+      updateMetrics(`${m} m`, `${Math.max(1,Math.round(m/80))}분`, fromB, toB);
+    }
+    function route(fromB,toB){
+      document.getElementById('mapMessage').style.display='none';
+      directionsService.route({
+        // 좌표를 직접 마커로 찍지 않고, Google Maps가 장소명을 해석해서
+        // 경로와 출발/도착 마커를 함께 표시하게 함
+        origin: `${fromB.name}, 가천대학교 글로벌캠퍼스, 성남시`,
+        destination: `${toB.name}, 가천대학교 글로벌캠퍼스, 성남시`,
+        travelMode: google.maps.TravelMode.WALKING
+      }, (response, status) => {
+        if(status === 'OK'){
+          directionsRenderer.setDirections(response);
+          const leg = response.routes[0].legs[0];
+          updateMetrics(leg.distance.text, leg.duration.text, fromB, toB);
+        } else {
+          directionsRenderer.set('directions', null);
+          approxMetrics(fromB,toB);
+          const bounds = new google.maps.LatLngBounds(); bounds.extend({lat:fromB.lat,lng:fromB.lng}); bounds.extend({lat:toB.lat,lng:toB.lng}); map.fitBounds(bounds);
+          const msg = document.getElementById('mapMessage'); msg.style.display='block'; msg.textContent='도보 경로를 가져오지 못했습니다. 건물명 검색 또는 Directions API 설정을 확인하세요.';
+        }
+      });
+    }
+    function update(){
+      const fromId=fromSel.value, toId=toSel.value, card=document.getElementById('resultCard'), warn=document.getElementById('sameWarn');
+      if(fromId===toId){ card.style.display='none'; warn.style.display='block'; return; }
+      warn.style.display='none'; card.style.display='block';
+      const fromB=findBuilding(fromId), toB=findBuilding(toId);
+      document.getElementById('routeText').textContent = `${fromB.name} → ${toB.name}`;
+      approxMetrics(fromB,toB);
+      if(map && directionsService) route(fromB,toB);
+    }
+    document.getElementById('swapBtn').addEventListener('click',()=>{ const t=fromSel.value; fromSel.value=toSel.value; toSel.value=t; update(); });
+    fromSel.addEventListener('change',update); toSel.addEventListener('change',update);
+  </script>
+  <!-- 아래 YOUR_GOOGLE_MAPS_API_KEY를 본인 Google Maps API 키로 바꿔주세요. -->
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap&language=ko&region=KR"></script>
+</body>
+</html>
